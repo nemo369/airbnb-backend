@@ -18,8 +18,6 @@ var corsOptions = {
 const serverRoot = 'http://localhost:3003/';
 const baseUrl = serverRoot + 'data';
 
-// app.use(express.static('uploads'));
-
 app.use(cors(corsOptions));
 app.use(bodyParser.json());
 app.use(clientSessions({
@@ -59,17 +57,17 @@ var objTypeRequiresUser = {
 // 1. _id if needed
 // 2. userId when needed
 function getBasicQueryObj(req) {
-	const objType 	= req.params.objType;
-	const objId 	= req.params.id;
+	const objType = req.params.objType;
+	const objId = req.params.id;
 	var query = {};
-	
+
 	if (objId) {
-		try { query._id = new mongodb.ObjectID(objId);}
-		catch(e) {return query}
+		try { query._id = new mongodb.ObjectID(objId); }
+		catch (e) { return query }
 	}
 	if (!objTypeRequiresUser[objType]) return query;
 	query.userId = null;
-	if ( req.session.user ) query.userId = req.session.user._id
+	if (req.session.user) query.userId = req.session.user._id
 	return query;
 }
 
@@ -100,19 +98,19 @@ app.get('/data/:objType/:id', function (req, res) {
 	cl(`Getting you an ${objType} with id: ${objId}`);
 	var query = getBasicQueryObj(req)
 	dbConnect()
-		.then(db=> {
+		.then(db => {
 			const collection = db.collection(objType);
-			
+
 			return collection.findOne(query)
 				.then(obj => {
 					cl('Returning a single ' + objType);
 					res.json(obj);
-					db.close();	
+					db.close();
 				})
 				.catch(err => {
 					cl('Cannot get you that ', err)
 					res.json(404, { error: 'not found' })
-					db.close();	
+					db.close();
 				})
 
 		});
@@ -120,11 +118,11 @@ app.get('/data/:objType/:id', function (req, res) {
 
 // DELETE
 app.delete('/data/:objType/:id', function (req, res) {
-	const objType 	= req.params.objType;
-	const objId 	= req.params.id;
+	const objType = req.params.objType;
+	const objId = req.params.id;
 	cl(`Requested to DELETE the ${objType} with id: ${objId}`);
 	var query = getBasicQueryObj(req);
-	
+
 	dbConnect().then((db) => {
 		const collection = db.collection(objType);
 		collection.deleteOne(query, (err, result) => {
@@ -132,76 +130,35 @@ app.delete('/data/:objType/:id', function (req, res) {
 				cl('Cannot Delete', err)
 				res.json(500, { error: 'Delete failed' })
 			} else {
-				if (result.deletedCount)	res.json({});
-				else res.json(403, { error: 'Cannot delete' }) 
+				if (result.deletedCount) res.json({});
+				else res.json(403, { error: 'Cannot delete' })
 			}
 			db.close();
 		});
 
 	});
-});
-
-// POST - adds 
-app.post('/data/:objType', upload.single('file'), function (req, res) {
-	//console.log('req.file', req.file);
-	// console.log('req.body', req.body);
-
-	const objType = req.params.objType;
-	cl('POST for ' + objType);
-
-	const obj = req.body;
-	delete obj._id;
-	if (objTypeRequiresUser[objType]){
-		if (req.session.user) {
-			obj.userId = req.session.user._id;
-		} else {
-			res.json(403, { error: 'Please Login first' })
-			return;
-		}
-	} 
-	// If there is a file upload, add the url to the obj
-	// if (req.file) {
-	// 	obj.imgUrl = serverRoot + req.file.filename;
-	// }
-
-
-
-	dbConnect().then((db) => {
-		const collection = db.collection(objType);
-
-		collection.insert(obj, (err, result) => {
-			if (err) {
-				cl(`Couldnt insert a new ${objType}`, err)
-				res.json(500, { error: 'Failed to add' })
-			} else {
-				cl(objType + ' added');
-				res.json(obj);
-			}
-			db.close();
-		});
-	});
-
 });
 
 // PUT - updates
 app.put('/data/:objType/:id', function (req, res) {
-	const objType 	= req.params.objType;
-	const objId 	= req.params.id;
-	const newObj 	= req.body;
+	const objType = req.params.objType;
+	const objId = req.params.id;
+	const newObj = req.body;
+	delete newObj._id
 
 	cl(`Requested to UPDATE the ${objType} with id: ${objId}`);
 	var query = getBasicQueryObj(req)
-	
 	dbConnect().then((db) => {
 		const collection = db.collection(objType);
-		collection.updateOne(query, newObj,
+		collection.findOneAndUpdate(query, newObj,
 			(err, result) => {
 				if (err) {
 					cl('Cannot Update', err)
 					res.json(500, { error: 'Update failed' })
 				} else {
-					if (result.modifiedCount) res.json(newObj);
-					else res.json(403, { error: 'Cannot update' })
+					 res.json(newObj);
+					// if (result.modifiedCount) res.json(newObj);
+					// else res.json(403, { error: 'Cannot update' })
 				}
 				db.close();
 			});
@@ -215,7 +172,7 @@ app.post('/login', function (req, res) {
 			if (user) {
 				cl('Login Succesful');
 				delete user.pass;
-				req.session.user = user;  
+				req.session.user = user;
 				res.json({ token: 'Beareloginr: puk115th@b@5t', user });
 			} else {
 				cl('Login NOT Succesful');
@@ -225,6 +182,26 @@ app.post('/login', function (req, res) {
 		});
 	});
 });
+
+// Add one item. 
+app.post('/data/:objType', function (req, res) {
+	dbConnect().then((db) => {
+		const objType = req.params.objType;
+		const collection = db.collection(objType);
+		const obj = req.body;
+
+		collection.insert(obj, (err, result) => {
+			if (err) {
+				cl(`Couldnt insert a new ${objType}`, err)
+				res.json(500, { error: 'Failed to add' })
+			} else {
+				cl(objType + ' added');
+				res.json(obj);
+			}
+			db.close();
+		});
+	});
+})
 
 app.get('/logout', function (req, res) {
 	req.session.reset();
