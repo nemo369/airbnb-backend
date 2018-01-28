@@ -18,7 +18,7 @@ var corsOptions = {
 const serverRoot = 'http://localhost:3003/';
 const baseUrl = serverRoot + 'data';
 
-// app.use(express.static('uploads'));
+app.use(express.static('uploads'));
 
 app.use(cors(corsOptions));
 app.use(bodyParser.json());
@@ -142,46 +142,46 @@ app.delete('/data/:objType/:id', function (req, res) {
 });
 
 // POST - adds 
-app.post('/data/:objType', upload.single('file'), function (req, res) {
-	//console.log('req.file', req.file);
-	// console.log('req.body', req.body);
+// app.post('/data/:objType', upload.single('file'), function (req, res) {
+// 	//console.log('req.file', req.file);
+// 	// console.log('req.body', req.body);
 
-	const objType = req.params.objType;
-	cl('POST for ' + objType);
+// 	const objType = req.params.objType;
+// 	cl('POST for ' + objType);
 
-	const obj = req.body;
-	delete obj._id;
-	if (objTypeRequiresUser[objType]){
-		if (req.session.user) {
-			obj.userId = req.session.user._id;
-		} else {
-			res.json(403, { error: 'Please Login first' })
-			return;
-		}
-	} 
-	// If there is a file upload, add the url to the obj
-	// if (req.file) {
-	// 	obj.imgUrl = serverRoot + req.file.filename;
-	// }
+// 	const obj = req.body;
+// 	delete obj._id;
+// 	if (objTypeRequiresUser[objType]){
+// 		if (req.session.user) {
+// 			obj.userId = req.session.user._id;
+// 		} else {
+// 			res.json(403, { error: 'Please Login first' })
+// 			return;
+// 		}
+// 	} 
+// 	// If there is a file upload, add the url to the obj
+// 	// if (req.file) {
+// 	// 	obj.imgUrl = serverRoot + req.file.filename;
+// 	// }
 
 
 
-	dbConnect().then((db) => {
-		const collection = db.collection(objType);
+// 	dbConnect().then((db) => {
+// 		const collection = db.collection(objType);
 
-		collection.insert(obj, (err, result) => {
-			if (err) {
-				cl(`Couldnt insert a new ${objType}`, err)
-				res.json(500, { error: 'Failed to add' })
-			} else {
-				cl(objType + ' added');
-				res.json(obj);
-			}
-			db.close();
-		});
-	});
+// 		collection.insert(obj, (err, result) => {
+// 			if (err) {
+// 				cl(`Couldnt insert a new ${objType}`, err)
+// 				res.json(500, { error: 'Failed to add' })
+// 			} else {
+// 				cl(objType + ' added');
+// 				res.json(obj);
+// 			}
+// 			db.close();
+// 		});
+// 	});
 
-});
+// });
 
 // PUT - updates
 app.put('/data/:objType/:id', function (req, res) {
