@@ -13,7 +13,7 @@
     "body-parser": "^1.15.2",
     "client-sessions": "^0.7.0",
     "cors": "^2.7.1",
-    "express": "^4.10.2",
+    "express": "^4.17.3",
     "mongodb": "^2.2.4",
     "multer": "^1.1.0",
     "nodemon": "^1.14.11",
